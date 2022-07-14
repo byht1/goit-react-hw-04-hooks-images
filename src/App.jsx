@@ -29,50 +29,52 @@ export default function App() {
       return;
     }
 
-    async function sererAIP() {
-      try {
-        setButton(false);
-        setLoading(true);
-        API.name = request;
-        API.page = page;
-        const data = await API.serverData();
-        const hits = await data.hits.map(x => {
-          return Object.fromEntries(
-            Object.entries(x).filter(([key]) =>
-              ['id', 'tags', 'largeImageURL', 'webformatURL'].includes(key)
-            )
-          );
-        });
-        setImages(prev => [...prev, ...hits]);
-        setButton(true);
-        setLoading(false);
-
-        return toastify();
-      } catch (error) {
-        notifyError();
-        setButton(false);
-        setLoading(false);
-      }
-    }
-
-    function toastify() {
-      const total = API.total;
-      const page = API.page;
-      if (total > 0 && page === 1) {
-        return notifySuccess(total);
-      }
-      if (total === 0) {
-        return notifyError();
-      }
-
-      if (Math.ceil(total / 12) === page) {
-        setButton(false);
-        return notifyInfo();
-      }
-    }
-
     sererAIP();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, request]);
+
+  async function sererAIP() {
+    try {
+      setButton(false);
+      setLoading(true);
+      API.name = request;
+      API.page = page;
+      const data = await API.serverData();
+      const hits = await data.hits.map(x => {
+        return Object.fromEntries(
+          Object.entries(x).filter(([key]) =>
+            ['id', 'tags', 'largeImageURL', 'webformatURL'].includes(key)
+          )
+        );
+      });
+      setImages(prev => [...prev, ...hits]);
+      setButton(true);
+      setLoading(false);
+
+      return toastify();
+    } catch (error) {
+      notifyError();
+      setButton(false);
+      setLoading(false);
+    }
+  }
+
+  function toastify() {
+    const total = API.total;
+    const page = API.page;
+    if (total > 0 && page === 1) {
+      return notifySuccess(total);
+    }
+    if (total === 0) {
+      setButton(false);
+      return notifyError();
+    }
+
+    if (Math.ceil(total / 12) === page) {
+      setButton(false);
+      return notifyInfo();
+    }
+  }
 
   const notifySuccess = total =>
     toast.success(`Hooray! We found ${total} images.`);

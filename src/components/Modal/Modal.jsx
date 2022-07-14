@@ -10,6 +10,7 @@ export default function Modal({ src, alt, hide }) {
     return () => {
       window.removeEventListener('keydown', clickEscate);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function clickEscate(event) {
