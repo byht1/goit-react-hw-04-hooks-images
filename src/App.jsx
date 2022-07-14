@@ -11,6 +11,7 @@ import Searchbar from './components/Searchbar/Searchbar';
 import Button from './components/Button/Button';
 import Server from './components/server/server';
 import Modal from './components/Modal/Modal';
+import * as Scroll from 'react-scroll';
 
 const API = new Server();
 
@@ -19,54 +20,59 @@ export default function App() {
   const [request, setRequest] = useState('');
   const [loading, setLoading] = useState(false);
   const [button, setButton] = useState(false);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(0);
   const [modal, setModal] = useState('');
   const [alt, setAlt] = useState('');
 
   useEffect(() => {
-    if (!request) {
+    if (page === 0) {
       return;
     }
 
-    setPage(1);
-    setImages([]);
-    API.page = 1;
-    sererAIP();
-  }, [request]);
+    async function sererAIP() {
+      try {
+        setButton(false);
+        setLoading(true);
+        API.name = request;
+        API.page = page;
+        const data = await API.serverData();
+        const hits = await data.hits.map(x => {
+          return Object.fromEntries(
+            Object.entries(x).filter(([key]) =>
+              ['id', 'tags', 'largeImageURL', 'webformatURL'].includes(key)
+            )
+          );
+        });
+        setImages(prev => [...prev, ...hits]);
+        setButton(true);
+        setLoading(false);
 
-  useEffect(() => {
-    if (page === 1) {
-      return;
+        return toastify();
+      } catch (error) {
+        notifyError();
+        setButton(false);
+        setLoading(false);
+      }
     }
 
-    API.page += 1;
-    sererAIP();
-  }, [page]);
+    function toastify() {
+      const total = API.total;
+      const page = API.page;
+      if (total > 0 && page === 1) {
+        return notifySuccess(total);
+      }
+      if (total === 0) {
+        return notifyError();
+      }
 
-  async function sererAIP() {
-    try {
-      setButton(false);
-      setLoading(true);
-      API.name = request;
-      const data = await API.serverData();
-      const hits = await data.hits.map(x => {
-        return Object.fromEntries(
-          Object.entries(x).filter(([key]) =>
-            ['id', 'tags', 'largeImageURL', 'webformatURL'].includes(key)
-          )
-        );
-      });
-      setImages(prev => [...prev, ...hits]);
-      setButton(true);
-      setLoading(false);
-
-      return toastify();
-    } catch (error) {
-      notifyError();
-      setButton(false);
-      setLoading(false);
+      if (Math.ceil(total / 12) === page) {
+        setButton(false);
+        return notifyInfo();
+      }
     }
-  }
+
+    sererAIP();
+  }, [page, request]);
 
   const notifySuccess = total =>
     toast.success(`Hooray! We found ${total} images.`);
@@ -79,22 +85,6 @@ export default function App() {
   const notifyInfo = () =>
     toast.info("We're sorry, but you've reached the end of search results.");
 
-  function toastify() {
-    const total = API.total;
-    const page = API.page;
-    if (total > 0 && page === 1) {
-      return notifySuccess(total);
-    }
-    if (total === 0) {
-      return notifyError();
-    }
-
-    if (Math.ceil(total / 12) === page) {
-      setButton(false);
-      return notifyInfo();
-    }
-  }
-
   function showBigImg(event) {
     if (event.target.nodeName !== 'IMG') {
       return;
@@ -105,6 +95,7 @@ export default function App() {
 
   function moreShow() {
     setPage(prev => prev + 1);
+    scrolAuro();
   }
 
   function resetModal() {
@@ -113,7 +104,16 @@ export default function App() {
   }
 
   function makeRequest(string) {
+    setImages([]);
     setRequest(string);
+    setPage(1);
+  }
+
+  function scrolAuro() {
+    const { height: cardHeight } = document
+      .querySelector('#galleryList')
+      .firstElementChild.getBoundingClientRect();
+    Scroll.animateScroll.scrollMore(cardHeight * 2);
   }
 
   return (
